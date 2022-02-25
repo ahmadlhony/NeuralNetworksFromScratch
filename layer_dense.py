@@ -7,9 +7,23 @@ class Layer_Dense:
     # without additional operations like transposition.
 
     def __init__(self, n_inputs, n_neurons):
+        self.dinputs = None
+        self.dbiases = None
+        self.dweights = None
+        self.inputs = None
         self.output = None
         self._weights = 0.10 * np.random.randn(n_inputs, n_neurons)
         self._biases = np.zeros((1, n_neurons))
 
     def forward(self, inputs):
         self.output = np.dot(inputs, self._weights) + self._biases
+        self.inputs = inputs
+
+    # Backward pass
+    def backward(self, dvalues):
+
+        # Gradients on parameters
+        self.dweights = np.dot(self.inputs.T, dvalues)
+        self.dbiases = np.sum(dvalues, axis=0, keepdims=True)
+        # Gradient on values
+        self.dinputs = np.dot(dvalues, self.weights.T)
