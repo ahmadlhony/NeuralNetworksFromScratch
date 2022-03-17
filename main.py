@@ -7,6 +7,7 @@ from nnfs.datasets import spiral_data
 from activation_ReLU import Activation_ReLU
 from activation_softmax import Activation_Softmax
 from activation_softmax_loss_categorical_crossentropy import Activation_Softmax_Loss_CategoricalCrossentropy
+from layer_dropout import Layer_Dropout
 from optimizer_RMSprop import Optimizer_RMSprop
 from optimizer_adam import Optimizer_Adam
 from optimizer_sgd import Optimizer_SGD
@@ -102,11 +103,10 @@ def multiLayerOfNeuronUsingNumPy():
 
 def firstDenseLayer():
     X = [
-        [1,2,3,2.5],
-        [2.0,5.0,-1.0,2.9],
-        [-1.5,2.7,3.3,-0.8]
+        [1, 2, 3, 2.5],
+        [2.0, 5.0, -1.0, 2.9],
+        [-1.5, 2.7, 3.3, -0.8]
     ]
-
 
     # We’ll initialize the biases with the shape of (1, n_neurons), as a row vector,
     # which will let us easily add it to the result of the dot product later,
@@ -127,6 +127,7 @@ def ReLUActivationFunction():
     dense1.forward(X)
     activation1.forward(dense1.output)
     print(activation1.output[:5])
+
 
 def softmaxActivationFunction():
     # Create dataset
@@ -153,6 +154,7 @@ def softmaxActivationFunction():
     activation2.forward(dense2.output)
     # Let's see output of the first few samples:
     print(activation2.output[:5])
+
 
 def calculationgLossWithCategoricalCrossEntropy():
     # Create dataset
@@ -186,6 +188,7 @@ def calculationgLossWithCategoricalCrossEntropy():
     loss = loss_function.calculate(activation2.output, y)
     # Print loss value
     print('loss:', loss)
+
 
 def accuracyCalculation():
     # Probabilities of 3 samples
@@ -250,16 +253,22 @@ def applyBackpropagation():
     print(dense2.dweights)
     print(dense2.dbiases)
 
+
 def applyOptimizerSGD():
     # Create dataset
     X, y = spiral_data(samples=100, classes=3)
     # Create Dense layer with 2 input features and 64 output values
-    dense1 = ld.Layer_Dense(2, 64)
+    dense1 = ld.Layer_Dense(2, 512, weight_regularizer_l2=5e-4,
+                            bias_regularizer_l2=5e-4)
+
+    # Create dropout layer
+    dropout1 = Layer_Dropout(0.1)
+
     # Create ReLU activation (to be used with Dense layer):
     activation1 = Activation_ReLU()
     # Create second Dense layer with 64 input features (as we take output
     # of previous layer here) and 3 output values (output values)
-    dense2 = ld.Layer_Dense(64, 3)
+    dense2 = ld.Layer_Dense(512, 3)
     # Create Softmax classifier's combined loss and activation
     loss_activation = Activation_Softmax_Loss_CategoricalCrossentropy()
 
@@ -267,19 +276,31 @@ def applyOptimizerSGD():
     # optimizer = Optimizer_SGD(decay=1e-3,  momentum=0.9)
     # optimizer = Optimizer_SGD(decay=1e-4)
     # optimizer = Optimizer_RMSprop(learning_rate=0.02, decay=1e-5, rho=0.999)
-    optimizer = Optimizer_Adam(learning_rate=0.05, decay=1e-7)
+    optimizer = Optimizer_Adam(learning_rate=0.02, decay=5e-5)
     for epoch in range(10001):
         # Perform a forward pass of our training data through this layer
         dense1.forward(X)
         # Perform a forward pass through activation function
         # takes the output of first dense layer here
         activation1.forward(dense1.output)
+
+        # Perform a forward pass through Dropout layer
+        dropout1.forward(activation1.output)
+
         # Perform a forward pass through second Dense layer
         # takes outputs of activation function of first layer as inputs
         dense2.forward(activation1.output)
+
         # Perform a forward pass through the activation/loss function
         # takes the output of second dense layer here and returns loss
-        loss = loss_activation.forward(dense2.output, y)
+        data_loss = loss_activation.forward(dense2.output, y)
+        # Calculate regularization penalty
+        regularization_loss = \
+            loss_activation.loss.regularization_loss(dense1) + \
+            loss_activation.loss.regularization_loss(dense2)
+        # Calculate overall loss
+        loss = data_loss + regularization_loss
+
         # Let's print loss value
         # Calculate accuracy from output of activation2 and targets
         # calculate values along first axis
@@ -292,7 +313,9 @@ def applyOptimizerSGD():
         if not epoch % 100:
             print(f'epoch: {epoch}, ' +
                   f'acc: {accuracy:.3f}, ' +
-                  f'loss: {loss:.3f}, ' +
+                  f'loss: {loss:.3f} (' +
+                  f'data_loss: {data_loss:.3f}, ' +
+                  f'reg_loss: {regularization_loss:.3f}), ' +
                   f'lr: {optimizer.current_learning_rate}')
 
         # Backward pass
@@ -306,6 +329,28 @@ def applyOptimizerSGD():
         optimizer.update_params(dense1)
         optimizer.update_params(dense2)
         optimizer.post_update_params()
+    # Validate the model
+    # Create test dataset
+    X_test, y_test = spiral_data(samples=100, classes=3)
+    # Perform a forward pass of our testing data through this layer
+    dense1.forward(X_test)
+    # Perform a forward pass through activation function
+    # takes the output of first dense layer here
+    activation1.forward(dense1.output)
+    # Perform a forward pass through second Dense layer
+    # takes outputs of activation function of first layer as inputs
+    dense2.forward(activation1.output)
+    # Perform a forward pass through the activation/loss function
+    # takes the output of second dense layer here and returns loss
+    loss = loss_activation.forward(dense2.output, y_test)
+    # Calculate accuracy from output of activation2 and targets
+    # calculate values along first axis
+    predictions = np.argmax(loss_activation.output, axis=1)
+    if len(y_test.shape) == 2:
+        y_test = np.argmax(y_test, axis=1)
+    accuracy = np.mean(predictions == y_test)
+    print(f'validation, acc: {accuracy:.3f}, loss: {loss:.3f}')
 
 
-accuracyCalculation()
+
+applyOptimizerSGD()
