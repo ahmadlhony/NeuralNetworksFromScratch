@@ -7,6 +7,8 @@ from nnfs.datasets import spiral_data
 from activation_ReLU import Activation_ReLU
 from activation_softmax import Activation_Softmax
 from activation_softmax_loss_categorical_crossentropy import Activation_Softmax_Loss_CategoricalCrossentropy
+from optimizer_RMSprop import Optimizer_RMSprop
+from optimizer_adam import Optimizer_Adam
 from optimizer_sgd import Optimizer_SGD
 
 nnfs.init()
@@ -262,7 +264,10 @@ def applyOptimizerSGD():
     loss_activation = Activation_Softmax_Loss_CategoricalCrossentropy()
 
     # Create optimizer
-    optimizer = Optimizer_SGD()
+    # optimizer = Optimizer_SGD(decay=1e-3,  momentum=0.9)
+    # optimizer = Optimizer_SGD(decay=1e-4)
+    # optimizer = Optimizer_RMSprop(learning_rate=0.02, decay=1e-5, rho=0.999)
+    optimizer = Optimizer_Adam(learning_rate=0.05, decay=1e-7)
     for epoch in range(10001):
         # Perform a forward pass of our training data through this layer
         dense1.forward(X)
@@ -276,14 +281,19 @@ def applyOptimizerSGD():
         # takes the output of second dense layer here and returns loss
         loss = loss_activation.forward(dense2.output, y)
         # Let's print loss value
-        print('loss:', loss)
         # Calculate accuracy from output of activation2 and targets
         # calculate values along first axis
         predictions = np.argmax(loss_activation.output, axis=1)
+
         if len(y.shape) == 2:
             y = np.argmax(y, axis=1)
         accuracy = np.mean(predictions == y)
-        print('acc:', accuracy)
+
+        if not epoch % 100:
+            print(f'epoch: {epoch}, ' +
+                  f'acc: {accuracy:.3f}, ' +
+                  f'loss: {loss:.3f}, ' +
+                  f'lr: {optimizer.current_learning_rate}')
 
         # Backward pass
         loss_activation.backward(loss_activation.output, y)
@@ -292,8 +302,10 @@ def applyOptimizerSGD():
         dense1.backward(activation1.dinputs)
 
         # Update weights and biases
+        optimizer.pre_update_params()
         optimizer.update_params(dense1)
         optimizer.update_params(dense2)
+        optimizer.post_update_params()
 
 
-applyOptimizerSGD()
+accuracyCalculation()
