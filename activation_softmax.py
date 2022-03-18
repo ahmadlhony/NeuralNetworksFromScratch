@@ -7,7 +7,7 @@ class Activation_Softmax:
         self.inputs = None
         self.output = None
 
-    def forward(self, inputs):
+    def forward(self, inputs, training):
         # Remember input values
         self.inputs = inputs
         # Get unnormalized probabilities
@@ -34,3 +34,7 @@ class Activation_Softmax:
             # and add it to the array of sample gradients
             self.dinputs[index] = np.dot(jacobian_matrix,
                                          single_dvalues)
+
+    # Calculate predictions for outputs
+    def predictions(self, outputs):
+        return np.argmax(outputs, axis=1)

@@ -12,7 +12,7 @@ class Activation_Softmax_Loss_CategoricalCrossentropy():
         self.activation = Activation_Softmax()
         self.loss = Loss_CategoricalCrossentropy()
     # Forward pass
-    def forward(self, inputs, y_true):
+    def forward(self, inputs, y_true, training):
         # Output layer's activation function
         self.activation.forward(inputs)
         # Set the output

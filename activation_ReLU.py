@@ -6,7 +6,7 @@ class Activation_ReLU:
         self.inputs = None
         self.output = None
 
-    def forward(self, inputs):
+    def forward(self, inputs, training):
         # Calculate output values from input
         self.inputs = inputs
         self.output = np.maximum(0, inputs)
@@ -19,3 +19,7 @@ class Activation_ReLU:
         self.dinputs = dvalues.copy()
         # Zero gradient where input values were negative
         self.dinputs[self.inputs <= 0] = 0
+
+    # Calculate predictions for outputs
+    def predictions(self, outputs):
+        return outputs

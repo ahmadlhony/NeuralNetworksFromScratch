@@ -1,3 +1,5 @@
+import numpy as np
+
 
 # Linear activation
 class Activation_Linear:
@@ -6,7 +8,7 @@ class Activation_Linear:
     def __init__(self):
         self.dinputs = None
 
-    def forward(self, inputs):
+    def forward(self, inputs, training):
         # Just remember values
         self.inputs = inputs
         self.output = inputs
@@ -15,3 +17,7 @@ class Activation_Linear:
     def backward(self, dvalues):
         # derivative is 1, 1 * dvalues = dvalues - the chain rule
         self.dinputs = dvalues.copy()
+
+    # Calculate predictions for outputs
+    def predictions(self, outputs):
+        return outputs
